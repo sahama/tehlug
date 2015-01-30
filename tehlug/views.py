@@ -1,3 +1,6 @@
+# Sayyid Hamid Mahdavi
+# GPL v3 ; later may be change
+
 from pyramid.response import Response
 from pyramid.view import view_config
 
