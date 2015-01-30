@@ -5,14 +5,14 @@ from sqlalchemy.exc import DBAPIError
 
 from .models import (
     DBSession,
-    MyModel,
+    User,
     )
 
 
 @view_config(route_name='home', renderer='templates/mytemplate.pt')
 def my_view(request):
     try:
-        one = DBSession.query(MyModel).filter(MyModel.name == 'one').first()
+        one = DBSession.query(User).filter(User.name == 'one').first()
     except DBAPIError:
         return Response(conn_err_msg, content_type='text/plain', status_int=500)
     return {'one': one, 'project': 'tehlug'}
@@ -34,3 +34,14 @@ After you fix the problem, please restart the Pyramid application to
 try it again.
 """
 
+@view_config(route_name='login', renderer='templates/login.pt')
+def login():
+    pass
+
+@view_config(route_name='logout', renderer='templates/logout.pt')
+def logout():
+    pass
+
+@view_config(route_name='register', renderer='templates/register.pt')
+def register():
+    pass
