@@ -30,7 +30,7 @@ def striper(str):
     return str
 
 def is_strip(str):
-    if str == is_strip(str):
+    if str == striper(str):
         return True
     else:
         return False

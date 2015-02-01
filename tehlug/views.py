@@ -2,7 +2,21 @@
 # GPL v3 ; later may be change
 
 from pyramid.response import Response
-from pyramid.view import view_config
+from pyramid.view import (
+    view_config,
+    forbidden_view_config,
+)
+
+from pyramid.httpexceptions import (
+    HTTPFound,
+    HTTPForbidden,
+    HTTPNotFound,
+)
+
+from pyramid.security import (
+remember,
+forget,
+)
 
 from sqlalchemy.exc import DBAPIError
 
@@ -15,7 +29,7 @@ from .models import (
 @view_config(route_name='home', renderer='templates/mytemplate.pt')
 def my_view(request):
     try:
-        one = DBSession.query(User).filter(User.name == 'one').first()
+        one = DBSession.query(User).filter(User.name == 'root').first()
     except DBAPIError:
         return Response(conn_err_msg, content_type='text/plain', status_int=500)
     return {'one': one, 'project': 'tehlug'}
@@ -37,14 +51,66 @@ After you fix the problem, please restart the Pyramid application to
 try it again.
 """
 
-@view_config(route_name='login', renderer='templates/login.pt')
-def login():
-    pass
+@view_config(route_name='signin', renderer='templates/signin.pt')
+def signin(request):
+    login_url = request.route_url('signin')
+    referrer = request.url
+    if referrer == login_url:
+        referrer = request.route_url('home')
 
-@view_config(route_name='logout', renderer='templates/logout.pt')
-def logout():
-    pass
+    message = ''
+    try:
+        import hashlib
+        user = DBSession.query(User).filter_by(name=request.authenticated_userid).one()
+    except:
+        user = None
 
-@view_config(route_name='register', renderer='templates/register.pt')
-def register():
-    pass
+    if 'submit' in request.POST:
+        name = request.POST.get('login_name', '')
+        password = request.POST.get('password', '')
+
+        try:
+            import hashlib
+            user = DBSession.query(User).filter_by(name=name,password=hashlib.md5(password.encode()).hexdigest()).one()
+            headers = remember(request, user.name)
+            message = 'user logged in:{0}'.format(name)
+            return HTTPFound(location=referrer, headers=headers)
+        # try:
+        #     user = DBSession.query(User).filter_by(login_name=login_name,password=password).one()
+        #     print(user)
+        #     headers = remember(request, login_name)
+        #     message = 'user logged in:{0}'.format(user.first_name)
+        #     return HTTPFound(location=referrer, headers=headers)
+        except:
+            message = 'کاربر پیدا نشد'
+
+    return {'user':user, 'message':message}
+
+
+@view_config(route_name='signout', renderer='templates/signout.pt')
+def signout(request):
+    headers = forget(request)
+    return HTTPFound(location=request.route_url('home'), headers=headers)
+
+@view_config(route_name='signup', renderer='templates/signup.pt')
+def signup(request):
+    message = ''
+    if 'submit' in request.POST:
+        same_users=DBSession.query(User).filter_by(name=request.POST.get('login_name', '')).all()
+        if not same_users:
+            import hashlib
+            user = User(name=request.POST.get('login_name', ''),
+                        password=hashlib.md5(request.POST.get('password', '').encode()).hexdigest(),
+                        email=request.POST.get('email', ''),
+                        display_name=request.POST.get('display_name', ''),
+                        mobile = request.POST.get('mobile', ''),)
+
+            DBSession.add(user)
+            message ='کاربر ثبت شد'
+        else:
+            message ='امکان ثبت کاربر وجود ندارد'
+
+    return {'message':message}
+
+
+
